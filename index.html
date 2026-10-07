@@ -853,37 +853,18 @@
   .qrbox {
     width: min(290px,100%);
     aspect-ratio: 1;
-    border: 2px dashed var(--mute);
-    border-radius: 10px;
-    position: relative;
-    display: grid;
-    place-items: center;
-    color: var(--mute);
-    font: 700 14px "JetBrains Mono",monospace;
-    margin-bottom: 12px;
-  }
-
-  .qrbox i {
-    position: absolute;
-    width: 26%;
-    height: 26%;
-    background: #3b2a20;
-    border-radius: 8px;
-  }
-
-  .qrbox i:after {
-    content: "";
-    position: absolute;
-    inset: 24%;
     background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    line-height: 0;
   }
 
-  .qrbox i:before {
-    content: "";
-    position: absolute;
-    inset: 38%;
-    background: #3b2a20;
-    z-index: 1;
+  .qrbox svg {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .how {
@@ -1199,35 +1180,7 @@
   <script>
     "use strict";
 
-    /* =====================================================================
-       PURR'COFFEE POS  -  script map
-       ---------------------------------------------------------------------
-       1. SETTINGS        numbers you may want to change (prices, limits)
-       2. HELPERS         icons, money format, dates, toast popup
-       3. MENU DATA       products, categories, product drawings
-       4. CART            current order (add / remove / totals)
-       5. TRANSACTIONS    reference numbers + saved sales history
-       6. PAYMENT         cash validation
-       7. RECEIPT         receipt HTML
-       8. SCREENS         one function per screen (v_order, v_cash, ...)
-       9. ACTIONS         what each button does (click handler)
-      10. START           boot the app
-       ===================================================================== */
-
-    /* ===== 1. SETTINGS ===== */
-    const CONFIG = {
-      LARGE_EXTRA: 20,          // extra pesos for a Large drink
-      MAX_QTY: 20,              // max quantity per add on the menu
-      PROCESS_MS: 1600,         // fake processing time for QR / Card
-      MAX_CASH_DIGITS: 7,       // max digits on the cash keypad
-      QUICK_AMOUNTS: [200, 500, 1000], // quick cash buttons (plus "Exact")
-      TOAST_MS: 2400,           // how long popups stay
-      STORAGE_KEY: "pos_tx"     // localStorage key for the reference counter
-    };
-    const LARGE_EXTRA = CONFIG.LARGE_EXTRA;
-
-
-    /* ===== 2. HELPERS (icons, money, dates, toast popup) ===== */
+    /* ===== utils ===== */
     const ICONS = {
       cup: "M4 8h13v8a4 4 0 01-4 4H8a4 4 0 01-4-4V8zM17 10h1a3 3 0 010 6h-1M8 2v3M12 2v3",
       menu: "M4 6h16M4 12h16M4 18h16",
@@ -1254,7 +1207,7 @@
     };
     const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
     const Util = {
-      cents: n => Math.round(Number(n) * 100), // money in centavos: no decimal errors
+      cents: n => Math.round(Number(n) * 100),
       peso: n => "₱" + Number(n).toLocaleString("en-PH", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
@@ -1266,11 +1219,12 @@
         e.innerHTML = ic(type === "success" ? "check" : "alert") + `<span>${t}</span>`;
         e.className = "show " + type;
         clearTimeout(Util._t);
-        Util._t = setTimeout(() => e.className = "", CONFIG.TOAST_MS);
+        Util._t = setTimeout(() => e.className = "", 2400);
       }
     };
 
-    /* ===== 3. MENU DATA (products, categories, drawn images - no image files needed) ===== */
+    /* ===== product data + drawn product images (inline SVG, no external files) ===== */
+    const LARGE_EXTRA = 20;
     const PRODUCTS = [
       {
         id: 1,
@@ -1390,7 +1344,7 @@
       return `<svg viewBox="0 0 100 100" role="img" aria-label="${p.name}">${B[p.art]()}</svg>`;
     }
 
-    /* ===== 4. CART (current order; each line is keyed by product + size) ===== */
+    /* ===== cart logic (temporary order state; lines keyed by product + size) ===== */
     const Cart = {
       items: [],
       find(k) {
@@ -1414,7 +1368,7 @@
         const e = this.find(k);
         if (!e)
           return;
-        e.quantity + d < 1 ? this.remove(k) : e.quantity += d; // never below 1
+        e.quantity + d < 1 ? this.remove(k) : e.quantity += d;
       },
       remove(k) {
         this.items = this.items.filter(i => i.key !== k);
@@ -1422,7 +1376,7 @@
       clear() {
         this.items = [];
       },
-      subtotal: i => Util.cents(i.price) * i.quantity / 100, // derived, never stored
+      subtotal: i => Util.cents(i.price) * i.quantity / 100,
       totalCents() {
         return this.items.reduce((s, i) => s + Util.cents(i.price) * i.quantity, 0);
       },
@@ -1437,14 +1391,237 @@
       }
     };
 
-    /* ===== 5. TRANSACTIONS (reference numbers + sales history) ===== */
+    /* ===== QR code (self-contained generator, no external library needed) ===== */
+    /* QR_CONFIG: the ONLY thing you change to turn the simulation into a real payment QR.
+       Leave paymentUrlTemplate empty = simulation payload (reference + amount as text).
+       To use a real payment link, put it here. {ref} and {amount} are replaced automatically.
+       Example: "https://your-payment-provider.example/pay?ref={ref}&amount={amount}" */
+    const QR_CONFIG = {
+      paymentUrlTemplate: ""
+    };
+
+    const QR = (() => {
+      /* Error-correction level M. version -> [EC codewords per block, [[blocks, data codewords per block], ...]] */
+      const BLOCKS = {
+        1: [10, [[1, 16]]], 2: [16, [[1, 28]]], 3: [26, [[1, 44]]], 4: [18, [[2, 32]]], 5: [24, [[2, 43]]],
+        6: [16, [[4, 27]]], 7: [18, [[4, 31]]], 8: [22, [[2, 38], [2, 39]]], 9: [22, [[3, 36], [2, 37]]], 10: [26, [[4, 43], [1, 44]]]
+      };
+      /* Alignment-pattern centre positions for each version */
+      const ALIGN = { 1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30], 6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50] };
+      /* The 8 standard mask patterns (true = flip the module) */
+      const MASKS = [
+        (r, c) => (r + c) % 2 === 0,
+        (r, c) => r % 2 === 0,
+        (r, c) => c % 3 === 0,
+        (r, c) => (r + c) % 3 === 0,
+        (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+        (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+        (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+        (r, c) => (((r + c) % 2) + ((r * c) % 3)) % 2 === 0
+      ];
+
+      /* Reed-Solomon error correction over GF(256) */
+      const EXP = [], LOG = [];
+      for (let i = 0, x = 1; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+      for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+      const mul = (a, b) => a && b ? EXP[LOG[a] + LOG[b]] : 0;
+      function rsEncode(data, n) {
+        let g = [1];
+        for (let i = 0; i < n; i++) {
+          const ng = new Array(g.length + 1).fill(0);
+          for (let j = 0; j < g.length; j++) { ng[j] ^= g[j]; ng[j + 1] ^= mul(g[j], EXP[i]); }
+          g = ng;
+        }
+        const r = new Array(n).fill(0);
+        for (const b of data) {
+          const f = b ^ r[0];
+          r.shift(); r.push(0);
+          if (f) for (let i = 0; i < n; i++) r[i] ^= mul(g[i + 1], f);
+        }
+        return r;
+      }
+
+      /* Mask quality score: lower is better (the 4 standard penalty rules) */
+      function penalty(m) {
+        const n = m.length;
+        let p = 0, dark = 0;
+        for (let pass = 0; pass < 2; pass++) {
+          const at = (a, b) => pass ? m[b][a] : m[a][b];
+          for (let a = 0; a < n; a++) {
+            let run = 1;
+            for (let b = 1; b < n; b++) {
+              if (at(a, b) === at(a, b - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1;
+            }
+            for (let b = 0; b + 10 < n; b++) {
+              const s = [];
+              for (let k = 0; k < 11; k++) s.push(at(a, b + k) ? 1 : 0);
+              const t = s.join("");
+              if (t === "10111010000" || t === "00001011101") p += 40;
+            }
+          }
+        }
+        for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+          if (m[y][x]) dark++;
+          if (x + 1 < n && y + 1 < n && m[y][x] === m[y][x + 1] && m[y][x] === m[y + 1][x] && m[y][x] === m[y + 1][x + 1]) p += 3;
+        }
+        return p + Math.floor(Math.abs(dark * 100 / (n * n) - 50) / 5) * 10;
+      }
+
+      /* Turn text into a square matrix of true/false modules */
+      function encode(text) {
+        const bytes = Array.from(new TextEncoder().encode(text));
+        const dataCap = v => BLOCKS[v][1].reduce((s, [n, d]) => s + n * d, 0);
+        let v = 1;
+        while (v <= 10 && bytes.length > dataCap(v) - (v < 10 ? 2 : 3)) v++;
+        if (v > 10) throw new Error("QR payload too long");
+
+        /* 1. Data bits: mode (byte), length, data, terminator, padding */
+        const bits = [];
+        const put = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+        put(4, 4);
+        put(bytes.length, v < 10 ? 8 : 16);
+        bytes.forEach(b => put(b, 8));
+        const cap = dataCap(v) * 8;
+        put(0, Math.min(4, cap - bits.length));
+        while (bits.length % 8) bits.push(0);
+        for (let pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) put(pad, 8);
+        const cw = [];
+        for (let i = 0; i < bits.length; i += 8) cw.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+
+        /* 2. Split into blocks, add Reed-Solomon error correction, interleave */
+        const [eccLen, groups] = BLOCKS[v];
+        const dBlocks = [], eBlocks = [];
+        let pos = 0;
+        for (const [n, d] of groups) for (let i = 0; i < n; i++) {
+          const blk = cw.slice(pos, pos + d);
+          pos += d;
+          dBlocks.push(blk);
+          eBlocks.push(rsEncode(blk, eccLen));
+        }
+        const out = [];
+        const maxD = Math.max(...dBlocks.map(b => b.length));
+        for (let i = 0; i < maxD; i++) dBlocks.forEach(b => { if (i < b.length) out.push(b[i]); });
+        for (let i = 0; i < eccLen; i++) eBlocks.forEach(b => out.push(b[i]));
+        const stream = [];
+        out.forEach(b => { for (let i = 7; i >= 0; i--) stream.push((b >>> i) & 1); });
+
+        /* 3. Fixed patterns: timing, 3 finder squares, alignment squares */
+        const size = 17 + 4 * v;
+        const mod = Array.from({ length: size }, () => Array(size).fill(false));
+        const fn = Array.from({ length: size }, () => Array(size).fill(false));
+        const set = (x, y, dark) => { mod[y][x] = dark; fn[y][x] = true; };
+        for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+        const finder = (cx, cy) => {
+          for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+            const x = cx + dx, y = cy + dy;
+            if (x < 0 || y < 0 || x >= size || y >= size) continue;
+            const d = Math.max(Math.abs(dx), Math.abs(dy));
+            set(x, y, d !== 2 && d !== 4);
+          }
+        };
+        finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+        const ap = ALIGN[v];
+        ap.forEach((cy, i) => ap.forEach((cx, j) => {
+          if ((i === 0 && j === 0) || (i === 0 && j === ap.length - 1) || (i === ap.length - 1 && j === 0)) return;
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(cx + dx, cy + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+        }));
+
+        /* 4. Format info (error level + mask) and version info cells */
+        const infoCells = mask => {
+          const cells = [];
+          let rem = mask;
+          for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+          const fb = ((mask << 10) | rem) ^ 0x5412;
+          const b = i => ((fb >>> i) & 1) === 1;
+          for (let i = 0; i <= 5; i++) cells.push([8, i, b(i)]);
+          cells.push([8, 7, b(6)], [8, 8, b(7)], [7, 8, b(8)]);
+          for (let i = 9; i < 15; i++) cells.push([14 - i, 8, b(i)]);
+          for (let i = 0; i < 8; i++) cells.push([size - 1 - i, 8, b(i)]);
+          for (let i = 8; i < 15; i++) cells.push([8, size - 15 + i, b(i)]);
+          cells.push([8, size - 8, true]);
+          if (v >= 7) {
+            let r2 = v;
+            for (let i = 0; i < 12; i++) r2 = (r2 << 1) ^ ((r2 >>> 11) * 0x1F25);
+            const vb = (v << 12) | r2;
+            for (let i = 0; i < 18; i++) {
+              const bit = ((vb >>> i) & 1) === 1, a = size - 11 + (i % 3), c = Math.floor(i / 3);
+              cells.push([a, c, bit], [c, a, bit]);
+            }
+          }
+          return cells;
+        };
+        infoCells(0).forEach(([x, y, d]) => set(x, y, d)); /* reserve these cells */
+
+        /* 5. Place data bits in the zig-zag order */
+        const raw = Array.from({ length: size }, () => Array(size).fill(false));
+        let bi = 0, up = true;
+        for (let c = size - 1; c > 0; c -= 2) {
+          if (c === 6) c--;
+          for (let i = 0; i < size; i++) {
+            const r = up ? size - 1 - i : i;
+            for (let k = 0; k < 2; k++) {
+              const cc = c - k;
+              if (!fn[r][cc]) raw[r][cc] = bi < stream.length ? stream[bi++] === 1 : false;
+            }
+          }
+          up = !up;
+        }
+
+        /* 6. Try all 8 masks, keep the best-scoring one */
+        let best = null, bestScore = Infinity;
+        for (let mask = 0; mask < 8; mask++) {
+          const m = mod.map(r => r.slice());
+          for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x]) m[y][x] = raw[y][x] !== MASKS[mask](y, x);
+          infoCells(mask).forEach(([x, y, d]) => { m[y][x] = d; });
+          const s = penalty(m);
+          if (s < bestScore) { bestScore = s; best = m; }
+        }
+        return { size, modules: best };
+      }
+
+      return {
+        /* What the QR contains */
+        payload(ref, amount) {
+          const amt = Number(amount).toFixed(2);
+          if (QR_CONFIG.paymentUrlTemplate) {
+            return QR_CONFIG.paymentUrlTemplate.replace("{ref}", encodeURIComponent(ref)).replace("{amount}", amt);
+          }
+          return `PURRCOFFEE-SIM|${ref}|PHP ${amt}|NOT A REAL PAYMENT`;
+        },
+        /* Draw the matrix as an inline SVG (white background + 4-module quiet zone, as the QR standard requires) */
+        svg(text) {
+          try {
+            const { size, modules } = encode(text);
+            const q = 4;
+            let d = "";
+            for (let y = 0; y < size; y++) {
+              for (let x = 0; x < size; x++) {
+                if (!modules[y][x]) continue;
+                let len = 1;
+                while (x + len < size && modules[y][x + len]) len++;
+                d += `M${x + q} ${y + q}h${len}v1h-${len}z`;
+                x += len - 1;
+              }
+            }
+            const n = size + q * 2;
+            return `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="QR code for payment ${text.replace(/"/g, "")}"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#3b2a20"/></svg>`;
+          }
+          catch (e) {
+            return `<div style="padding:24px;font:700 14px sans-serif;color:#b91c1c;line-height:1.4">QR code unavailable</div>`;
+          }
+        },
+        encode
+      };
+    })();
+
+    /* ===== transaction logic (separate from cart) ===== */
     const Tx = {
       seq: 0,
       used: new Set(),
       history: [],
       init() {
         try {
-          const s = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || "{}");
+          const s = JSON.parse(localStorage.getItem("pos_tx") || "{}");
           if (s.day === Util.ymd(new Date())) {
             this.seq = s.seq || 0;
             (s.used || []).forEach(r => this.used.add(r));
@@ -1463,7 +1640,7 @@
         } while (this.used.has(r));
         this.used.add(r);
         try {
-          localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify({
+          localStorage.setItem("pos_tx", JSON.stringify({
             day: Util.ymd(new Date()),
             seq: this.seq,
             used: [...this.used]
@@ -1480,7 +1657,7 @@
           transactionReference: this.newRef(),
           dateTime: new Date(),
           serviceMode: mode,
-          items: Cart.items.map(i => ({ // snapshot: later cart changes cannot alter it
+          items: Cart.items.map(i => ({
             name: i.name,
             size: i.size,
             price: i.price,
@@ -1498,7 +1675,7 @@
       }
     };
 
-    /* ===== 6. PAYMENT (cash validation) ===== */
+    /* ===== payment logic ===== */
     const Payment = { check(s) {
         if (!/^\d{1,7}$/.test(s) || Number(s) <= 0)
           return { error: "invalid" };
@@ -1512,7 +1689,7 @@
         };
       } };
 
-    /* ===== 7. RECEIPT ===== */
+    /* ===== receipt generation ===== */
     const Receipt = { html(t) {
         const rows = t.items.map(i => `<div class="r"><b>${i.name}${i.size ? ` (${i.size})` : ""}</b><span>${Util.peso(i.subtotal)}</span></div><small>${i.quantity} × ${Util.peso(i.price)}</small>`).join("");
         const cash = t.paymentMethod === "Cash" ? `<div class="r"><span>Cash received</span><span>${Util.peso(t.cashReceived)}</span></div><div class="r"><span>Change</span><span>${Util.peso(t.change)}</span></div>` : "";
@@ -1525,7 +1702,7 @@
       <div class="r"><span>Status</span><span class="okk">Payment Successful</span></div><hr><div class="c">Thank you! Come back soon.</div></div>`;
       } };
 
-    /* ===== 8. SCREENS + APP STATE (step numbers, state, render, one v_ function per screen) ===== */
+    /* ===== UI ===== */
     const STEP = {
       order: 1,
       review: 2,
@@ -1547,7 +1724,6 @@
       from: "success",
       cashStr: "",
       processing: false,
-      // go to another screen and redraw
       go(s) {
         this.screen = s;
         this.render();
@@ -1559,7 +1735,6 @@
           qty: 1
         });
       },
-      // redraw sidebar, top bar and main area
       render() {
         const n = STEP[this.screen];
         document.getElementById("side").innerHTML = `<div class="brand">${ic("cup")}Purr'Coffee</div>
@@ -1626,7 +1801,7 @@
         return `<div class="two"><div><h2>${ic("cash")} Cash Payment</h2><div class="amt"><span>Total amount</span><b>${Util.peso(Cart.total())}</b></div><span class="lbl">Amount paid</span>
       <div class="field ${bad ? "bad" : ""} ${s ? "" : "z"}">${Util.peso(amt)}</div>
       ${bad ? `<div class="alert">${ic("alert")}<div><b>Insufficient cash.</b>Please enter an amount equal to or greater than the total. You are short by ${Util.peso(r.short)}.</div></div>` : ""}
-      <span class="lbl" style="color:var(--mute)">Quick amounts</span><div class="quick"><button data-a="quick" data-v="${Cart.total()}" class="${s && amt === Math.ceil(Cart.total()) ? "on" : ""}">Exact</button>${CONFIG.QUICK_AMOUNTS.map(v => `<button data-a="quick" data-v="${v}" class="${s && amt === v ? "on" : ""}">₱${v.toLocaleString()}</button>`).join("")}</div>
+      <span class="lbl" style="color:var(--mute)">Quick amounts</span><div class="quick"><button data-a="quick" data-v="${Cart.total()}" class="${s && amt === Math.ceil(Cart.total()) ? "on" : ""}">Exact</button>${[200, 500, 1000].map(v => `<button data-a="quick" data-v="${v}" class="${s && amt === v ? "on" : ""}">₱${v.toLocaleString()}</button>`).join("")}</div>
       <div class="chg ${ok ? "ok" : ""}"><div>Change${ok ? `<small>${Util.peso(amt)} − ${Util.peso(Cart.total())}</small>` : ""}</div><b>${ok ? Util.peso(r.change) : "—"}</b></div></div>
       <div><div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button data-a="key" data-k="${d}">${d}</button>`).join("")}<button class="f" data-a="kclear">Clear</button><button data-a="key" data-k="0">0</button><button class="f" data-a="kback" aria-label="Backspace">${ic("back")}</button></div>
       <button class="wide pri" style="margin-top:12px" data-a="payCash">Pay Now</button><button class="wide out" data-a="toMethod">${ic("left")} Change payment method</button></div></div>`;
@@ -1636,7 +1811,7 @@
       },
       v_qr() {
         const p = this.processing;
-        return `<div class="two" style="margin-top:20px"><div class="qrcard"><div><div class="qrbox"><i style="top:8%;left:8%"></i><i style="top:8%;right:8%"></i><i style="bottom:8%;left:8%"></i><div>QR CODE<br><small>placeholder</small></div></div><div class="note">Ref: ${Tx.peekRef()}</div></div></div>
+        return `<div class="two" style="margin-top:20px"><div class="qrcard"><div><div class="qrbox">${QR.svg(QR.payload(Tx.peekRef(), Cart.total()))}</div><div class="note">Ref: ${Tx.peekRef()}</div></div></div>
       <div><h2>${ic("qr")} QR Payment <small style="font-size:16px;color:var(--brand)">(simulation)</small></h2><div class="amt"><span>Amount to pay</span><b style="color:var(--brand)">${Util.peso(Cart.total())}</b></div>
       <ul class="how"><li><b>1</b>Scan the QR code using your supported payment application.</li><li><b>2</b>Check that the amount is ${Util.peso(Cart.total())} and approve it in your app.</li><li><b>3</b>Tap Confirm Payment below.</li></ul>${p ? this.proc() : ""}
       <div class="btns" style="grid-template-columns:1fr 1.4fr"><button class="out" ${p ? "disabled" : ""} data-a="toMethod">${ic("left")} Back</button><button class="pri" ${p ? "disabled" : ""} data-a="payQR">${ic("check")} Confirm Payment</button></div>
@@ -1663,7 +1838,7 @@
         const h = Tx.history;
         return `<h1>History</h1><p class="sub">Completed transactions this session.</p><div class="hist">${h.length ? h.map((t, i) => `<button data-a="open" data-i="${i}"><span>${t.transactionReference}<br><small style="color:var(--mute)">${t.dateTime.toLocaleTimeString("en-PH", { timeStyle: "short" })} · ${t.paymentMethod} · ${t.serviceMode}</small></span><b>${Util.peso(t.total)}</b></button>`).join("") : `<div class="empty">No transactions yet.</div>`}</div>`;
       },
-      /* ===== 9. ACTIONS (guard, finish payment, new transaction, click handler) ===== */
+      /* --- actions --- */
       guard() {
         if (Cart.isEmpty()) {
           Util.toast("Please add at least one product before proceeding.", "warn");
@@ -1676,7 +1851,7 @@
           return;
         if (!this.guard())
           return this.go("order");
-        const d = method === "Cash" ? 0 : CONFIG.PROCESS_MS;
+        const d = method === "Cash" ? 0 : 1600;
         this.processing = d > 0;
         this.render();
         setTimeout(() => {
@@ -1705,14 +1880,12 @@
         Util.toast("New transaction started — previous order cleared");
         this.go("order");
       },
-      // one click listener for the whole page; buttons carry data-a="action"
       handle(e) {
         const b = e.target.closest("[data-a]");
         if (!b || this.processing)
           return;
         const id = Number(b.dataset.id), k = b.dataset.k;
         switch (b.dataset.a) {
-          /* --- menu --- */
           case "cat":
             this.cat = b.dataset.c;
             this.q = "";
@@ -1724,7 +1897,7 @@
             break;
           case "qp": {
             const v = this.getSel(id);
-            if (v.qty < CONFIG.MAX_QTY)
+            if (v.qty < 20)
               v.qty++;
             this.refreshGrid();
             break;
@@ -1765,7 +1938,6 @@
             this.render();
             Util.toast("Item removed.", "warn");
             break;
-          /* --- navigation --- */
           case "toOrder":
             this.go("order");
             break;
@@ -1785,13 +1957,12 @@
             this.from = "history";
             this.go("receipt");
             break;
-          /* --- payment: choose method + cash keypad --- */
           case "pick":
             this.cashStr = "";
             this.go(b.dataset.m === "Cash" ? "cash" : b.dataset.m === "Card" ? "card" : "qr");
             break;
           case "key":
-            if (this.cashStr.length < CONFIG.MAX_CASH_DIGITS) {
+            if (this.cashStr.length < 7) {
               this.cashStr = (this.cashStr + b.dataset.k).replace(/^0+/, "");
               this.render();
             }
@@ -1808,7 +1979,6 @@
             this.cashStr = String(Math.ceil(Number(b.dataset.v)));
             this.render();
             break;
-          /* --- pay + receipt --- */
           case "payCash": {
             const r = this.cashStr ? Payment.check(this.cashStr) : { error: "invalid" };
             if (r.error === "invalid")
@@ -1849,10 +2019,9 @@
         g ? g.innerHTML = this.gridHtml() : this.render();
       }
     };
-    /* ===== 10. START ===== */
-    Tx.init();                                            // load today's reference counter
+    Tx.init();
     document.addEventListener("click", e => App.handle(e));
-    App.render();                                         // draw the first screen
+    App.render();
   </script>
 </body>
 </html>
