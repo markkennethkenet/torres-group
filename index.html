@@ -1108,6 +1108,65 @@
     }
   }
 
+  /* ===== MENU SCREEN: fixed-height layout so only the product list scrolls =====
+     App.render() adds .menu-lock to <body> while the menu (order) screen is showing. */
+  @media screen and (min-width:821px) {
+    body.menu-lock {
+      overflow: hidden;
+    }
+    body.menu-lock .shell {
+      height: calc(100vh - 28px);
+      height: calc(100dvh - 28px);
+      min-height: 0;
+      grid-template-rows: minmax(0,1fr);
+    }
+    body.menu-lock .content {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    body.menu-lock .top {
+      flex: none;
+    }
+    body.menu-lock #app {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--pill) transparent;
+    }
+  }
+
+  @media screen and (min-width:1101px) {
+    body.menu-lock #app {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    body.menu-lock .cols {
+      flex: 1;
+      min-height: 0;
+      grid-template-rows: minmax(0,1fr);
+    }
+    body.menu-lock .grid {
+      align-self: stretch;
+      align-content: start;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      padding-right: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--pill) transparent;
+    }
+    body.menu-lock .cart {
+      max-height: 100%;
+      overflow-y: auto;
+    }
+  }
+
   /* ===== TOAST + PRINT + REDUCED MOTION ===== */
   #toast {
     position: fixed;
@@ -1736,6 +1795,10 @@
         });
       },
       render() {
+        /* remember the menu scroll position so adding an item / changing qty doesn't jump back to the top */
+        const wasMenu = document.body.classList.contains("menu-lock");
+        const keepGrid = wasMenu ? (document.getElementById("grid") || {}).scrollTop || 0 : 0;
+        const keepApp = wasMenu ? document.getElementById("app").scrollTop : 0;
         const n = STEP[this.screen];
         document.getElementById("side").innerHTML = `<div class="brand">${ic("cup")}Purr'Coffee</div>
         <button class="nav ${this.screen === "order" ? "on" : ""}" data-a="toOrder">${ic("menu")} Menu</button>
@@ -1747,11 +1810,20 @@
         }).join("");
         document.getElementById("top").innerHTML = this.screen === "order" ? `<div class="search">${ic("search")}<input id="q" type="search" placeholder="Search menu" value="${this.q.replace(/"/g, "&quot;")}" aria-label="Search menu"></div><div class="steps">${steps}</div>` : `<div class="steps">${steps}</div>`;
         document.getElementById("app").innerHTML = this["v_" + this.screen]();
+        /* menu screen only: lock the page height so just the product list scrolls (see CSS .menu-lock) */
+        document.body.classList.toggle("menu-lock", this.screen === "order");
+        if (this.screen === "order" && wasMenu) {
+          document.getElementById("app").scrollTop = keepApp;
+          const g = document.getElementById("grid");
+          if (g)
+            g.scrollTop = keepGrid;
+        }
         const q = document.getElementById("q");
         if (q)
           q.oninput = () => {
             this.q = q.value;
             document.getElementById("grid").innerHTML = this.gridHtml();
+            this.menuScrollTop();
           };
       },
       gridHtml() {
@@ -1890,6 +1962,7 @@
             this.cat = b.dataset.c;
             this.q = "";
             this.render();
+            this.menuScrollTop();
             break;
           case "size":
             this.getSel(id).size = b.dataset.s;
@@ -2013,6 +2086,12 @@
             this.newTx();
             break;
         }
+      },
+      menuScrollTop() {
+        const g = document.getElementById("grid");
+        if (g)
+          g.scrollTop = 0;
+        document.getElementById("app").scrollTop = 0;
       },
       refreshGrid() {
         const g = document.getElementById("grid");
