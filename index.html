@@ -352,6 +352,7 @@
 
   .img {
     height: 150px;
+    flex-shrink: 0;
     border-radius: 14px;
     background: var(--img);
     overflow: hidden;
@@ -359,7 +360,9 @@
     place-items: center;
   }
 
-  .img svg {
+  .img img {
+    display: block;
+    object-fit: cover;
     height: 100%;
     width: 100%;
   }
@@ -507,7 +510,9 @@
     background: var(--img);
   }
 
-  .item .th svg {
+  .item .th img {
+    display: block;
+    object-fit: cover;
     width: 100%;
     height: 100%;
   }
@@ -1282,7 +1287,7 @@
       }
     };
 
-    /* ===== product data + drawn product images (inline SVG, no external files) ===== */
+    /* ===== product data + local product images ===== */
     const LARGE_EXTRA = 20;
     const PRODUCTS = [
       {
@@ -1291,11 +1296,7 @@
         price: 95,
         cat: "Coffee",
         sizes: 1,
-        art: "cup",
-        layers: [
-          [30, 44, "#f6e8d6"],
-          [44, 88, "#a8744a"]
-        ],
+        image: "assets/images/cappuccino.jpg",
         desc: "Espresso with steamed milk and a thick foam cap."
       },
       {
@@ -1304,11 +1305,7 @@
         price: 100,
         cat: "Coffee",
         sizes: 1,
-        art: "cup",
-        layers: [
-          [30, 56, "#f1e2cf"],
-          [56, 88, "#c89a6c"]
-        ],
+        image: "assets/images/caffe-latte.jpg",
         desc: "Smooth espresso over cold milk and ice."
       },
       {
@@ -1317,10 +1314,7 @@
         price: 80,
         cat: "Coffee",
         sizes: 1,
-        art: "cup",
-        layers: [
-          [30, 88, "#3a2218"]
-        ],
+        image: "assets/images/americano.jpg",
         desc: "Bold espresso topped with cold water."
       },
       {
@@ -1329,11 +1323,7 @@
         price: 120,
         cat: "Non Coffee",
         sizes: 1,
-        art: "cup",
-        layers: [
-          [30, 52, "#a9c06f"],
-          [52, 88, "#eef0d6"]
-        ],
+        image: "assets/images/matcha-latte.jpg",
         desc: "Ceremonial matcha whisked with milk."
       },
       {
@@ -1342,10 +1332,7 @@
         price: 90,
         cat: "Non Coffee",
         sizes: 1,
-        art: "cup",
-        layers: [
-          [30, 88, "#7a4a31"]
-        ],
+        image: "assets/images/choco-milk.jpg",
         desc: "Rich dark chocolate with cold milk."
       },
       {
@@ -1353,7 +1340,7 @@
         name: "Croissant",
         price: 85,
         cat: "Food",
-        art: "croissant",
+        image: "assets/images/croissant.jpg",
         desc: "Buttery, flaky, baked fresh each morning."
       },
       {
@@ -1361,7 +1348,7 @@
         name: "Club Sandwich",
         price: 130,
         cat: "Food",
-        art: "sandwich",
+        image: "assets/images/club-sandwich.jpg",
         desc: "Chicken, egg, lettuce and tomato on toast."
       },
       {
@@ -1369,7 +1356,7 @@
         name: "Cookies",
         price: 45,
         cat: "Snack",
-        art: "cookie",
+        image: "assets/images/cookies.jpg",
         desc: "Two chewy chocolate chip cookies."
       },
       {
@@ -1377,7 +1364,7 @@
         name: "Cheesecake",
         price: 110,
         cat: "Dessert",
-        art: "cake",
+        image: "assets/images/cheesecake.jpg",
         desc: "Creamy baked cheesecake with berry sauce."
       },
       {
@@ -1385,23 +1372,11 @@
         name: "Donut",
         price: 55,
         cat: "Dessert",
-        art: "donut",
+        image: "assets/images/donut.jpg",
         desc: "Glazed ring donut, soft and fluffy."
       }
     ];
-    const CATS = ["Coffee", "Non Coffee", "Food", "Snack", "Dessert"];
-    function art(p) {
-      const L = y => 30 + (y - 30) * 5 / 55, B = {
-        cup: () => p.layers.map(([a, b, c]) => `<polygon points="${L(a)},${a} ${70 - (L(a) - 30)},${a} ${70 - (L(b) - 30)},${b} ${L(b)},${b}" fill="${c}"/>`).join("") +
-          `<path d="M30 30h40l-5 56a5 5 0 01-5 4H40a5 5 0 01-5-4z" fill="rgba(255,255,255,.25)" stroke="#8d969c" stroke-width="2"/><rect x="42" y="50" width="10" height="10" rx="2" fill="#fff" opacity=".5" transform="rotate(12 47 55)"/><rect x="53" y="62" width="9" height="9" rx="2" fill="#fff" opacity=".45"/><path d="M56 30l6-22" stroke="#e9d9c6" stroke-width="3" stroke-linecap="round"/>`,
-        croissant: () => `<path d="M15 62c4-24 22-34 35-34s31 10 35 34c-8-6-12-8-18-6-3-8-9-12-17-12s-14 4-17 12c-6-2-10 0-18 6z" fill="#d9954a"/><path d="M38 40l5 14M50 36v18M62 40l-5 14" stroke="#b9722e" stroke-width="3" stroke-linecap="round"/>`,
-        sandwich: () => `<path d="M14 66L50 24l36 42z" fill="#e8c27c"/><path d="M20 66l30-34 30 34z" fill="#8fbf5a"/><path d="M26 66l24-26 24 26z" fill="#e5533d"/><path d="M14 66h72v8H14z" fill="#e8c27c"/>`,
-        cookie: () => `<circle cx="50" cy="52" r="30" fill="#c58a4a"/><circle cx="40" cy="44" r="4" fill="#4a2c1a"/><circle cx="58" cy="40" r="4" fill="#4a2c1a"/><circle cx="52" cy="58" r="4" fill="#4a2c1a"/><circle cx="36" cy="60" r="3.5" fill="#4a2c1a"/><circle cx="64" cy="58" r="3.5" fill="#4a2c1a"/>`,
-        cake: () => `<path d="M14 70L50 30l36 40z" fill="#f6dfa6"/><path d="M14 70h72v8H14z" fill="#d9a65c"/><path d="M50 30l36 40H50z" fill="#f0cd84"/><circle cx="50" cy="26" r="6" fill="#d33d5b"/>`,
-        donut: () => `<circle cx="50" cy="52" r="32" fill="#e7b06b"/><circle cx="50" cy="50" r="30" fill="#f3a0b8"/><circle cx="50" cy="50" r="10" fill="var(--img)"/><path d="M30 38l5 3M62 32l-3 5M70 56l-5 2M40 70l3-5M58 70l-2-5" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`
-      };
-      return `<svg viewBox="0 0 100 100" role="img" aria-label="${p.name}">${B[p.art]()}</svg>`;
-    }
+    const CATS = ["All Products", "Coffee", "Non Coffee", "Food", "Snack", "Dessert"];
 
     /* ===== cart logic (temporary order state; lines keyed by product + size) ===== */
     const Cart = {
@@ -1775,7 +1750,7 @@
     };
     const App = {
       screen: "order",
-      cat: "Coffee",
+      cat: "All Products",
       q: "",
       mode: "Dine in",
       sel: {},
@@ -1827,12 +1802,13 @@
           };
       },
       gridHtml() {
-        const s = this.q.trim().toLowerCase(), list = PRODUCTS.filter(p => s ? p.name.toLowerCase().includes(s) : p.cat === this.cat);
+        const s = this.q.trim().toLowerCase(), list = PRODUCTS.filter(p =>
+          (this.cat === "All Products" || p.cat === this.cat) && p.name.toLowerCase().includes(s));
         if (!list.length)
           return `<div class="empty">No products found.<br>Try another name or category.</div>`;
         return list.map(p => {
           const v = this.getSel(p.id), inCart = Cart.items.some(i => i.productId === p.id), pr = p.price + (p.sizes && v.size === "Large" ? LARGE_EXTRA : 0);
-          return `<div class="pc ${inCart ? "in" : ""}"><div class="img">${art(p)}</div><div class="pn"><span style="color:var(--ink)">${p.name}</span><span>${Util.peso(pr)}</span></div><p class="desc">${p.desc}</p>
+          return `<div class="pc ${inCart ? "in" : ""}"><div class="img"><img src="${p.image}" alt="${p.name}"></div><div class="pn"><span style="color:var(--ink)">${p.name}</span><span>${Util.peso(pr)}</span></div><p class="desc">${p.desc}</p>
         ${p.sizes ? `<div class="sz"><small>Size</small><div>${["Small", "Large"].map(z => `<button class="${v.size === z ? "on" : ""}" data-a="size" data-id="${p.id}" data-s="${z}">${z}${z === "Large" ? " +₱" + LARGE_EXTRA : ""}</button>`).join("")}</div></div>` : ""}
         <div class="ar"><div class="st"><button data-a="qm" data-id="${p.id}" aria-label="Less">${ic("minus")}</button><b>${v.qty}</b><button data-a="qp" data-id="${p.id}" aria-label="More">${ic("plus")}</button></div><button class="add" data-a="add" data-id="${p.id}">Add to Cart</button></div></div>`;
         }).join("");
@@ -1846,14 +1822,14 @@
         return `<div class="cart"><h3>Cart summary</h3><div class="mode">${modes.map(([m, i]) => `<button class="${this.mode === m ? "on" : ""}" data-a="mode" data-m="${m}">${ic(i)}${m}</button>`).join("")}</div>${Cart.isEmpty() ? `<div class="empty">${ic("cart")}<b>Your order is empty</b><br>Tap Add to Cart on a product.</div>` :
           Cart.items.map(i => {
             const p = PRODUCTS.find(x => x.id === i.productId);
-            return `<div class="item"><div class="th">${art(p)}</div><div><b>${i.name}</b><small>${i.size ? i.size + " · " : ""}${Util.peso(i.price)} each</small><div class="q"><button data-a="dec" data-k="${i.key}" aria-label="Decrease ${i.name}">${ic("minus")}</button><i>${i.quantity}</i><button data-a="inc" data-k="${i.key}" aria-label="Increase ${i.name}">${ic("plus")}</button></div></div>
+            return `<div class="item"><div class="th"><img src="${p.image}" alt="${p.name}"></div><div><b>${i.name}</b><small>${i.size ? i.size + " · " : ""}${Util.peso(i.price)} each</small><div class="q"><button data-a="dec" data-k="${i.key}" aria-label="Decrease ${i.name}">${ic("minus")}</button><i>${i.quantity}</i><button data-a="inc" data-k="${i.key}" aria-label="Increase ${i.name}">${ic("plus")}</button></div></div>
         <div class="rt"><b>${Util.peso(Cart.subtotal(i))}</b><br><button class="del" data-a="rem" data-k="${i.key}" aria-label="Remove ${i.name}">${ic("trash")}</button></div></div>`;
           }).join("")}
         <div class="row2"><span>Price</span><span>${Util.peso(Cart.total())}</span></div><div class="row2 g"><span>Grand total</span><b>${Util.peso(Cart.total())}</b></div>
         <button class="wide pri ${Cart.isEmpty() ? "dis" : ""}" data-a="toReview">Place an order</button></div>`;
       },
       v_order() {
-        return `<h1>Coffee menu</h1><div class="pills">${CATS.map(c => `<button class="${!this.q && c === this.cat ? "on" : ""}" data-a="cat" data-c="${c}">${c}</button>`).join("")}</div><div class="cols"><div class="grid" id="grid">${this.gridHtml()}</div>${this.cartBox()}</div>`;
+        return `<h1>Menu</h1><div class="pills">${CATS.map(c => `<button class="${c === this.cat ? "on" : ""}" data-a="cat" data-c="${c}" aria-pressed="${c === this.cat}">${c}</button>`).join("")}</div><div class="cols"><div class="grid" id="grid">${this.gridHtml()}</div>${this.cartBox()}</div>`;
       },
       v_review() {
         return `<div style="max-width:1000px"><h1>Order summary</h1><p class="sub">${this.mode} · Check your items before paying. Tap Back to make changes — your items stay in the cart.</p>
@@ -1947,7 +1923,7 @@
         this.processing = false;
         this.sel = {};
         this.q = "";
-        this.cat = "Coffee";
+        this.cat = "All Products";
         this.mode = "Dine in";
         Util.toast("New transaction started — previous order cleared");
         this.go("order");
@@ -1960,7 +1936,6 @@
         switch (b.dataset.a) {
           case "cat":
             this.cat = b.dataset.c;
-            this.q = "";
             this.render();
             this.menuScrollTop();
             break;
@@ -2098,6 +2073,16 @@
         g ? g.innerHTML = this.gridHtml() : this.render();
       }
     };
+    document.addEventListener("error", e => {
+      const img = e.target;
+      if (img.tagName !== "IMG" || !img.matches(".img img, .th img"))
+        return;
+      const box = img.parentElement;
+      box.setAttribute("role", "img");
+      box.setAttribute("aria-label", img.alt + " - image unavailable");
+      box.textContent = "Image unavailable";
+      box.style.cssText = "display:grid;place-items:center;text-align:center;font-size:12px;color:var(--mute)";
+    }, true);
     Tx.init();
     document.addEventListener("click", e => App.handle(e));
     App.render();
