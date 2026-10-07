@@ -1,0 +1,73 @@
+/* Design tokens: colors for light and dark mode, page reset. */
+
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #fbe1cc;
+  --panel: #fff4ea;
+  --card: #fff;
+  --ink: #3b2a20;
+  --mute: #7a6455;
+  --line: #f0d5be;
+  --brand: #a0643a;
+  --pill: #f4a46c;
+  --pillink: #fff;
+  --ok: #15803d;
+  --okbg: #dcfce7;
+  --err: #b91c1c;
+  --errbg: #fee2e2;
+  --btn2: #3b2a20;
+  --btn2ink: #fff;
+  --img: #d5d9dc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1511;
+    --panel: #2a1f19;
+    --card: #35271f;
+    --ink: #f7e9dc;
+    --mute: #c9ae98;
+    --line: #4a382d;
+    --brand: #d39a6c;
+    --pill: #e0905a;
+    --pillink: #2a1f19;
+    --ok: #4ade80;
+    --okbg: #10331f;
+    --err: #fca5a5;
+    --errbg: #3a1518;
+    --btn2: #f7e9dc;
+    --btn2ink: #2a1f19;
+    --img: #4a4540;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1d1511;
+  --panel: #2a1f19;
+  --card: #35271f;
+  --ink: #f7e9dc;
+  --mute: #c9ae98;
+  --line: #4a382d;
+  --brand: #d39a6c;
+  --pill: #e0905a;
+  --pillink: #2a1f19;
+  --ok: #4ade80;
+  --okbg: #10331f;
+  --err: #fca5a5;
+  --errbg: #3a1518;
+  --btn2: #f7e9dc;
+  --btn2ink: #2a1f19;
+  --img: #4a4540;
+}
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}

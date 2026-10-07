@@ -1,0 +1,113 @@
+/* Base elements: body, headings, icons, buttons. */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    700 17px/1.35 Nunito,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+svg.i {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+button {
+  font: inherit;
+  font-weight: 800;
+  color: inherit;
+  cursor: pointer;
+  min-height: 52px;
+  min-width: 52px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    transform 0.08s,
+    filter 0.15s;
+}
+
+button:active {
+  transform: scale(0.95);
+  filter: brightness(0.93);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.pri {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-size: 19px;
+  min-height: 60px;
+}
+
+.out {
+  border-color: var(--btn2);
+  min-height: 60px;
+  font-size: 19px;
+}
+
+.dis {
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--mute);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-weight: 800;
+}
+
+h1 {
+  font-size: 32px;
+}
+
+h2 {
+  font-size: 28px;
+}
+
+.sub {
+  color: var(--mute);
+  margin: 6px 0 0;
+}
+
+.lbl {
+  display: block;
+  font-size: 15px;
+  margin: 12px 0 6px;
+}
+
+.note {
+  color: var(--mute);
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 10px;
+}

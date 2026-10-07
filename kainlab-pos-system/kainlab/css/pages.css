@@ -1,0 +1,318 @@
+/* Page-specific styles: summary table, payment screens, receipt, history. */
+
+.panelbox {
+  background: var(--card);
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.tr {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line);
+  font-size: 19px;
+  align-items: center;
+}
+
+.tr.h {
+  background: var(--panel);
+  border: 0;
+  font-size: 13px;
+  color: var(--mute);
+  padding: 12px 22px;
+}
+
+.tr > *:not(:first-child) {
+  text-align: right;
+}
+
+.tsum {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 22px;
+  background: color-mix(in srgb, var(--pill) 22%, var(--card));
+}
+
+.tsum b {
+  font-size: 40px;
+  color: var(--brand);
+}
+
+.methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.method {
+  flex-direction: column;
+  min-height: 270px;
+  border-radius: 24px;
+  padding: 20px;
+  font-weight: 600;
+  color: var(--mute);
+  gap: 4px;
+  text-align: center;
+  border: 3px solid transparent;
+}
+
+.method h3 {
+  margin: 10px 0 2px;
+  font-size: 26px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.mic {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 50px;
+}
+
+.field {
+  background: var(--card);
+  border: 3px solid var(--btn2);
+  border-radius: 16px;
+  padding: 12px 22px;
+  font-size: 40px;
+  font-weight: 800;
+  min-height: 78px;
+}
+
+.field.bad {
+  border-color: var(--err);
+}
+
+.field.z {
+  color: var(--mute);
+}
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pad button {
+  min-height: 92px;
+  font-size: 32px;
+  border-radius: 16px;
+  padding: 0;
+}
+
+.pad .f {
+  background: var(--panel);
+  font-size: 20px;
+}
+
+.qrcard,
+.term {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 32px;
+  text-align: center;
+  display: grid;
+  place-items: center;
+}
+
+.qrbox {
+  width: min(290px, 100%);
+  aspect-ratio: 1;
+  border: 2px dashed var(--mute);
+  border-radius: 10px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--mute);
+  font:
+    700 14px "JetBrains Mono",
+    monospace;
+  margin-bottom: 12px;
+}
+
+.qrbox i {
+  position: absolute;
+  width: 26%;
+  height: 26%;
+  background: #3b2a20;
+  border-radius: 8px;
+}
+
+.qrbox i:after {
+  content: "";
+  position: absolute;
+  inset: 24%;
+  background: #fff;
+}
+
+.qrbox i:before {
+  content: "";
+  position: absolute;
+  inset: 38%;
+  background: #3b2a20;
+  z-index: 1;
+}
+
+.how {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  gap: 12px;
+}
+
+.how li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 18px;
+}
+
+.how b {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--btn2);
+  color: var(--btn2ink);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.okc {
+  background: var(--card);
+  border-radius: 26px;
+  padding: 32px;
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.bigok {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: #15803d;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 58px;
+  margin: 0 auto 12px;
+}
+
+.okc h2 {
+  font-size: 40px;
+  color: var(--ok);
+}
+
+.kv {
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  margin: 20px 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.kv div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  font-size: 19px;
+}
+
+.kv div:first-child {
+  border: 0;
+  background: var(--panel);
+}
+
+.kv span {
+  color: var(--mute);
+}
+
+.kv .m {
+  font:
+    700 20px "JetBrains Mono",
+    monospace;
+}
+
+.kv .g {
+  color: var(--ok);
+}
+
+.okc button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.rc {
+  background: #fff;
+  color: #2b1d14;
+  border-radius: 10px;
+  padding: 30px;
+  font:
+    500 16px/1.5 "JetBrains Mono",
+    monospace;
+  box-shadow: 0 8px 28px rgba(80, 40, 10, 0.2);
+}
+
+.rc h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 25px;
+}
+
+.rc .c {
+  text-align: center;
+  color: #6b5646;
+  font-size: 13px;
+}
+
+.rc hr {
+  border: 0;
+  border-top: 2px dashed #b9a592;
+  margin: 12px 0;
+}
+
+.rc .r {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rc small {
+  display: block;
+  color: #6b5646;
+}
+
+.rc .t {
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.rc .okk {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.hist {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.hist button {
+  justify-content: space-between;
+  min-height: 72px;
+  font-size: 18px;
+  text-align: left;
+  width: 100%;
+}
